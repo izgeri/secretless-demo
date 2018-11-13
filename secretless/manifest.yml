@@ -1,0 +1,57 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-application
+  labels:
+    app: demo-application
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-application
+  template:
+    metadata:
+      labels:
+        app: demo-application
+    spec:
+      serviceAccountName: demo-sa
+      containers:
+      - name: demo-application
+        image: cyberark/demo-app:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DB_URL
+          value: postgresql://localhost:5432/postgres?sslmode=disable
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 3
+          periodSeconds: 5
+      - name: secretless
+        image: cyberark/secretless-broker:latest
+        imagePullPolicy: IfNotPresent
+        args: ["-f", "/etc/secretless/secretless.yml"]
+        volumeMounts:
+        - name: config
+          mountPath: /etc/secretless
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: demo-secretless-config
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: demo-application
+spec:
+  selector:
+    app: demo-application
+  ports:
+  - port: 8080
+    targetPort: 8080
+    nodePort: 30003
+  type: NodePort

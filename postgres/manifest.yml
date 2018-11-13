@@ -1,0 +1,42 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pg
+  labels:
+    app: demo-backend
+spec:
+  serviceName: demo-backend
+  selector:
+    matchLabels:
+      app: demo-backend
+  template:
+    metadata:
+      labels:
+        app: demo-backend
+    spec:
+      containers:
+      - name: demo-backend
+        image: demo-backend
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 5432
+        readinessProbe:
+          exec:
+            command: ["psql", "-w", "-U", "postgres", "-c", "SELECT 1"]
+          initialDelaySeconds: 15
+          timeoutSeconds: 2
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: demo-backend
+spec:
+  selector:
+    app: demo-backend
+  ports:
+    - port: 5432
+      targetPort: 5432
+      nodePort: 30001
+  type: NodePort

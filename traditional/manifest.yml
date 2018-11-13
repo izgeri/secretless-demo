@@ -1,0 +1,54 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-traditional-application
+  labels:
+    app: demo-traditional-application
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-traditional-application
+  template:
+    metadata:
+      labels:
+        app: demo-traditional-application
+    spec:
+      containers:
+      - name: demo-traditional-application
+        image: cyberark/demo-app:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DB_URL
+          value: postgresql://192.168.99.100:30001/postgres
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: demo-backend-creds
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: demo-backend-creds
+              key: password
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 3
+          periodSeconds: 5
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: demo-traditional-application
+spec:
+  selector:
+    app: demo-traditional-application
+  ports:
+  - port: 8080
+    targetPort: 8080
+    nodePort: 30002
+  type: NodePort
